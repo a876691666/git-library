@@ -8,5 +8,7 @@ cargo install diesel_cli --no-default-features --features sqlite
 ## create database
 
 ```bash
-diesel migration run --database-url=./data/users.db
+diesel setup
+diesel migration generate users
+diesel migration run --database-url=./data/sqlite.db
 ```

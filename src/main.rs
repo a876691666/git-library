@@ -1,62 +1,54 @@
-use crate::db::users::models::User;
-use crate::db::users::schema::users;
-use actix_web::{get, web, App, HttpResponse, HttpServer, Responder, Result};
+use crate::db::users::models::GitList;
+use crate::db::users::schema::git_lists;
+use actix_web::{get, web, App, HttpServer, Responder, Result};
+use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel::sqlite::SqliteConnection;
 
 pub mod db;
 
 fn establish_connection() -> SqliteConnection {
-    let database_url = "./data/users.db";
+    let database_url = "./data/sqlite.db";
     SqliteConnection::establish(database_url)
         .expect(&format!("Error connecting to {}", database_url))
 }
 
-fn random_string() -> String {
-    use rand::distributions::Alphanumeric;
-    use rand::{thread_rng, Rng};
-    thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(30)
-        .map(char::from)
-        .collect()
+fn get_utc_time() -> i32 {
+    let utc: DateTime<Utc> = Utc::now();
+    utc.timestamp() as i32
 }
 
 #[get("/")]
-async fn hello() -> impl Responder {
+async fn hello() -> Result<impl Responder> {
     let connection = &mut establish_connection();
-    let users = users::table
-        .load::<User>(connection)
+    let users = git_lists::table
+        .load::<GitList>(connection)
         .expect("Error loading users");
-    let string = users
-        .iter()
-        .map(|user| {
-            format!(
-                "{}: {}: {}: {}",
-                user.id, user.name, user.password, user.email
-            )
-        })
-        .collect::<Vec<String>>()
-        .join("\n");
-    HttpResponse::Ok().body(string)
+    Ok(web::Json(users))
 }
 
 #[get("/add")]
 async fn add() -> Result<impl Responder> {
     let connection = &mut establish_connection();
-    let new_id = users::table
-        .select(diesel::dsl::max(users::id))
+    let new_id = git_lists::table
+        .select(diesel::dsl::max(git_lists::id))
         .first::<Option<i32>>(connection)
         .expect("Error loading max id")
         .unwrap_or(0)
         + 1;
-    let new_user = User {
+    let new_user = GitList {
         id: new_id,
         name: "test".to_string(),
-        email: random_string(),
-        password: random_string(),
+        url: "".to_string(),
+        description: "".to_string(),
+        tags: "".to_string(),
+        is_deleted: 0,
+        created_at: get_utc_time(),
+        updated_at: get_utc_time(),
+        info: "{}".to_string(),
+        info_updated_at: get_utc_time(),
     };
-    diesel::insert_into(users::table)
+    diesel::insert_into(git_lists::table)
         .values(&new_user)
         .execute(connection)
         .expect("Error saving new post");
