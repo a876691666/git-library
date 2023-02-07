@@ -12,9 +12,9 @@ fn establish_connection() -> SqliteConnection {
         .expect(&format!("Error connecting to {}", database_url))
 }
 
-fn get_utc_time() -> i32 {
+fn get_utc_time() -> i64 {
     let utc: DateTime<Utc> = Utc::now();
-    utc.timestamp() as i32
+    utc.timestamp()
 }
 
 #[derive(Deserialize, Debug)]
@@ -22,7 +22,7 @@ struct GitListPagination {
     #[serde(default = "default_page_size")]
     pub page_size: i64,
 
-    #[serde(default = "default_page_num")]
+    #[serde(default = "default_num")]
     pub page_num: i64,
 }
 
@@ -30,8 +30,12 @@ fn default_page_size() -> i64 {
     5
 }
 
-fn default_page_num() -> i64 {
+fn default_num() -> i64 {
     0
+}
+
+fn default_empty_string() -> String {
+    "".to_string()
 }
 
 #[get("/list")]
@@ -49,10 +53,42 @@ async fn hello(info: web::Query<GitListPagination>) -> Result<impl Responder> {
     Ok(web::Json(users))
 }
 
-#[derive(Deserialize)]
+/// 添加git项目的请求参数
+#[derive(Deserialize, Debug)]
 struct AddType {
+    /// Git项目名称
     pub name: String,
+
+    /// Git项目地址
     pub url: String,
+
+    /// 描述
+    #[serde(default = "default_empty_string")]
+    pub description: String,
+
+    /// 标签
+    #[serde(default = "default_empty_string")]
+    pub tags: String,
+
+    /// Git项目信息
+    #[serde(default = "default_empty_string")]
+    pub info: String,
+
+    /// Git项目信息更新时间
+    #[serde(default = "get_utc_time")]
+    pub info_updated_at: i64,
+
+    /// 创建时间
+    #[serde(default = "get_utc_time")]
+    pub created_at: i64,
+
+    /// 更新时间
+    #[serde(default = "get_utc_time")]
+    pub updated_at: i64,
+
+    /// 是否删除, 0: 未删除, 1: 已删除
+    #[serde(default = "default_num")]
+    pub is_deleted: i64,
 }
 
 #[post("/add")]
@@ -67,13 +103,13 @@ async fn add(info: web::Json<AddType>) -> Result<impl Responder> {
         id: new_id,
         name: info.name.clone(),
         url: info.url.clone(),
-        description: "".to_string(),
-        tags: "".to_string(),
-        is_deleted: 0,
-        created_at: get_utc_time(),
-        updated_at: get_utc_time(),
-        info: "{}".to_string(),
-        info_updated_at: get_utc_time(),
+        description: info.description.clone(),
+        tags: info.tags.clone(),
+        is_deleted: info.is_deleted as i32,
+        created_at: info.created_at as i32,
+        updated_at: info.updated_at as i32,
+        info: info.info.clone(),
+        info_updated_at: info.info_updated_at as i32,
     };
     diesel::insert_into(git_lists::table)
         .values(&new_user)

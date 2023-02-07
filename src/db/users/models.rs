@@ -1,17 +1,27 @@
-use diesel::prelude::*;
 use super::schema::git_lists;
+use diesel::prelude::*;
 use serde::Serialize;
 
 #[derive(Queryable, Insertable, Debug, Serialize)]
 pub struct GitList {
-    pub id: i32, // unique id
-    pub name: String, // name of the item
-    pub url: String, // url of the item
-    pub description: String, // description of the item
-    pub tags: String, // tags of the item
-    pub is_deleted: i32, // is the item deleted
-    pub created_at: i32, // create time
-    pub updated_at: i32, // update time
-    pub info: String, // detailed info of the item
-    pub info_updated_at: i32, // update time of the detailed info
+    /// 条目id
+    pub id: i32,
+    /// Git项目名称
+    pub name: String,
+    /// Git项目地址
+    pub url: String,
+    /// 描述
+    pub description: String,
+    /// 标签
+    pub tags: String,
+    /// 是否删除, 0: 未删除, 1: 已删除
+    pub is_deleted: i32,
+    /// 创建时间
+    pub created_at: i32,
+    /// 更新时间
+    pub updated_at: i32,
+    /// Git项目信息
+    pub info: String,
+    /// Git项目信息更新时间
+    pub info_updated_at: i32,
 }
